@@ -15,21 +15,20 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    public OrderService(OrderRepository orderRepository, RabbitTemplate rabbitTemplate, OrderRepository orderRepository1, RabbitTemplate rabbitTemplate1){
-        this.orderRepository = orderRepository1;
-        this.rabbitTemplate = rabbitTemplate1;
+    public OrderService(OrderRepository orderRepository, RabbitTemplate rabbitTemplate){
+        this.orderRepository = orderRepository;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public void placeOrder(OrderRequestDto orderRequest){
         Order newOrder = new Order();
-        newOrder.setOrderId(UUID.randomUUID().toString());
         newOrder.setClientId(orderRequest.getClientId());
         newOrder.setDeliveryAddress(orderRequest.getDeliveryAddress());
         newOrder.setOrderStatus("SUBMITTED");
 
         orderRepository.save(newOrder);
 
-        // Publish a message to RabbitMQ
-        rabbitTemplate.convertAndSend("order-intake", newOrder);
+        // Publish a message to RabbitMQ  (uncomment after configuring JSON converter)
+//        rabbitTemplate.convertAndSend("order-intake", newOrder);
     }
 }
