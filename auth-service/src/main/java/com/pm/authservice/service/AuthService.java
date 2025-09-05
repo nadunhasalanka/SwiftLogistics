@@ -1,6 +1,8 @@
 package com.pm.authservice.service;
 
 import com.pm.authservice.dto.LoginRequestDTO;
+import com.pm.authservice.dto.LoginResponseDTO;
+import com.pm.authservice.dto.SignupResponseDTO;
 import com.pm.authservice.model.User;
 import com.pm.authservice.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
@@ -24,12 +26,20 @@ public class AuthService {
     }
 
     // business logic that need for authenticating the user
-    public Optional<String> authenticate(LoginRequestDTO loginRequestDTO){
+    public Optional<LoginResponseDTO> authenticate(LoginRequestDTO loginRequestDTO){
         Optional<String> token = userService.findByEmail(loginRequestDTO.getEmail())
                 .filter(u -> passwordEncoder.matches(loginRequestDTO.getPassword(), u.getPassword()))
                 .map(u -> jwtUtil.generateToken(u.getEmail(), u.getRole()));
 
-        return token;
+        Optional<User> user = userService.findByEmail(loginRequestDTO.getEmail());
+
+        if (token.isPresent() && user.isPresent()) {
+            LoginResponseDTO loginRequest = new LoginResponseDTO(token.get(), user.get().getName(), user.get().getId());
+            return Optional.of(loginRequest);
+        } else {
+            return Optional.empty();
+        }
+
     }
 
     public boolean validateToken(String token){
