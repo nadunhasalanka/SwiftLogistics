@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { login } from '../service/AuthService';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -23,21 +24,12 @@ export function Login() {
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      console.log('Login data:', data);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo purposes, accept any email/password
-      if (data.email && data.password) {
-        toast.success('Login successful!');
-        navigate('/dashboard');
-      } else {
-        throw new Error('Invalid credentials');
-      }
-    } catch (error) {
-      toast.error('Invalid email or password');
+      // Call real login API
+      let user = await login({ email: data.email, password: data.password });-
+      toast.success('Login successful!');
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'Invalid email or password');
     } finally {
       setIsSubmitting(false);
     }
