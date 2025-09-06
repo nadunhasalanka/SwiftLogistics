@@ -10,7 +10,7 @@
         <module name="auth-service" />
         <module name="discovery-server" />
       </profile>
-      <profile name="Annotation profile for order-orchestration-service" enabled="true">
+      <profile name="Annotation profile for api-gateway" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
