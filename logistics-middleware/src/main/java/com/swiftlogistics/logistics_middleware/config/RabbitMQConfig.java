@@ -26,6 +26,12 @@ public class RabbitMQConfig {
     public static final String ROUTING_KEY_ROS = "ros.routing.key";
 
     @Bean
+    public Queue middlewareQueue() {
+        return new Queue("middleware_queue", true); // durable = true
+    }
+
+
+    @Bean
     public Queue cmsQueue(){
         return new Queue(QUEUE_CMS, true);
     }
@@ -44,6 +50,12 @@ public class RabbitMQConfig {
     public DirectExchange exchange() {
         return new DirectExchange(EXCHANGE_MIDDLEWARE);
     }
+
+    @Bean
+    public Binding middlewareBinding(Queue middlewareQueue, DirectExchange exchange) {
+        return BindingBuilder.bind(middlewareQueue).to(exchange).with("middleware.routing.key");
+    }
+
 
     // Bind the queues to the exchange with specific routing keys
     @Bean
