@@ -22,7 +22,7 @@ public class WmsAdapter {
     public void receiveOrderFromQueue(Order order){
         log.info("WMS Adapter received a new order from RabbitMQ: {}", order);
 
-        String wmsMessage = String.format("ORDER|%s|%s", order.getOrderId(), order.getClientName());
+        String wmsMessage = String.format("ORDER|%s|%s", order.getId(), order.getClientName());
 
         try (Socket socket = new Socket(WMS_HOST, WMS_PORT);
             OutputStream out = socket.getOutputStream()){

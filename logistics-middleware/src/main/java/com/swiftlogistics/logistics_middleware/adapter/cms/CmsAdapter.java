@@ -1,6 +1,7 @@
 package com.swiftlogistics.logistics_middleware.adapter.cms;
 
 import com.swiftlogistics.logistics_middleware.model.Order;
+import com.swiftlogistics.logistics_middleware.producer.RabbitMQJsonProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
