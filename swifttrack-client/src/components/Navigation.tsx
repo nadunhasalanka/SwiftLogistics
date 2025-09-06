@@ -1,12 +1,16 @@
 import { Package, Plus, BarChart3, User, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 
-interface NavigationProps {
-  onLogout?: () => void;
-}
-
-export function Navigation({ onLogout }: NavigationProps) {
+export function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useUser();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
@@ -47,17 +51,15 @@ export function Navigation({ onLogout }: NavigationProps) {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <User className="h-4 w-4" />
-              <span>Demo User</span>
+              <span>{user ? user.name : 'Guest'}</span>
             </div>
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </button>
-            )}
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              <LogOut className="h-4 w-4 mr-1" />
+              Logout
+            </button>
           </div>
         </div>
       </div>

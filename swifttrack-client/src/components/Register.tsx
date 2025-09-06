@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Mail, Lock, User, Phone, MapPin, Building, AlertCircle, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { signup } from '../service/AuthService';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -33,26 +34,16 @@ export function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      const registrationData = {
-        firstName: data.firstName,
-        lastName: data.lastName,
+      // Call signup API
+      await signup({
         email: data.email,
-        phone: data.phone,
-        company: data.company,
-        address: data.address,
         password: data.password,
-      };
-
-      console.log('Registration data:', registrationData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+        name: `${data.firstName} ${data.lastName}`,
+      });
       toast.success('Account created successfully!');
       navigate('/login');
-    } catch (error) {
-      toast.error('Registration failed. Please try again.');
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -150,7 +141,7 @@ export function Register() {
             </div>
 
             {/* Phone */}
-            <div>
+            {/* <div>
               <label className="form-label">Phone Number *</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -169,10 +160,10 @@ export function Register() {
                   {errors.phone.message}
                 </p>
               )}
-            </div>
+            </div> */}
 
             {/* Company */}
-            <div>
+            {/* <div>
               <label className="form-label">Company</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -185,10 +176,10 @@ export function Register() {
                   placeholder="Your Company Name"
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Address */}
-            <div>
+            {/* <div>
               <label className="form-label">Address *</label>
               <div className="relative">
                 <div className="absolute top-3 left-0 pl-3 flex items-start pointer-events-none">
@@ -207,7 +198,7 @@ export function Register() {
                   {errors.address.message}
                 </p>
               )}
-            </div>
+            </div> */}
 
             {/* Password */}
             <div>

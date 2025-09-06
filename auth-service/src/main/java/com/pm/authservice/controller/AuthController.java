@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
     private final AuthService authService;
     private final UserService userService;
@@ -25,17 +26,18 @@ public class AuthController {
 
     @Operation(summary = "Generate token on user Login")
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequestDTO){
+    public ResponseEntity<Optional<LoginResponseDTO>> login(@RequestBody LoginRequestDTO loginRequestDTO){
 
-        Optional<String> tokenOptional = authService.authenticate(loginRequestDTO);
+        Optional<LoginResponseDTO> loginUser = authService.authenticate(loginRequestDTO);
 
-        if(tokenOptional.isEmpty()){
+        if(loginUser.isEmpty()){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         // with the get method we convert the Optional<String> to String
-        String token = tokenOptional.get();
-        return ResponseEntity.ok(new LoginResponseDTO(token));
+//        String token = loginUser.get().getToken()
+//        S
+        return ResponseEntity.ok(loginUser);
 
 
     }
@@ -48,9 +50,10 @@ public class AuthController {
         loginRequestDTO.setEmail(signupRequestDTO.getEmail());
         loginRequestDTO.setPassword(signupRequestDTO.getPassword());
 
-        ResponseEntity<LoginResponseDTO> loginResponseDTOResponseEntity = login(loginRequestDTO);
-        String token = loginResponseDTOResponseEntity.getBody().getToken();
-        return ResponseEntity.ok(new SignupResponseDTO(token));
+        ResponseEntity<Optional<LoginResponseDTO>> loginResponseDTOResponseEntity = login(loginRequestDTO);
+        String token = loginResponseDTOResponseEntity.getBody().get().getToken();
+        String name = loginResponseDTOResponseEntity.getBody().get().getName();
+        return ResponseEntity.ok(new SignupResponseDTO(token, name));
 
     }
 
