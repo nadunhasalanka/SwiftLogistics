@@ -33,4 +33,9 @@ public class RabbitMQConfig {
     public MessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
     }
+
+    @Bean
+    public Queue compensatingTransactionsQueue() {
+        return new Queue("compensating-transactions", true);
+    }
 }
