@@ -1,5 +1,6 @@
 package com.swiftlogistics.order_orchestration_service.service;
 
+import com.swiftlogistics.order_orchestration_service.dto.OrderDto;
 import com.swiftlogistics.order_orchestration_service.dto.OrderRequest;
 import com.swiftlogistics.order_orchestration_service.dto.OrderResponse;
 import com.swiftlogistics.order_orchestration_service.model.Order;
@@ -10,7 +11,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderProcessingService {
@@ -24,23 +28,28 @@ public class OrderProcessingService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    public OrderResponse placeOrder(OrderRequest orderRequest) {
+    public OrderResponse placeOrder(OrderRequest orderRequest,String userId) {
         try {
             Order order = new Order();
+            order.setUserId(userId);
             order.setClientName(orderRequest.getClientName());
             order.setPackageDetails(orderRequest.getPackageDetails());
             order.setDeliveryAddress(orderRequest.getDeliveryAddress());
             order.setStatus(OrderStatus.SUBMITTED);
+            order.setCmsStatus("PENDING");
+            order.setWmsStatus("PENDING");
+            order.setRosStatus("PENDING");
 
             Order savedOrder = orderRepository.save(order);
 
             try {
-                // Publish the full Order object for other services to consume
                 rabbitTemplate.convertAndSend(ORDER_SUBMITTED_QUEUE, savedOrder);
                 System.out.println("Published order with ID " + savedOrder.getId() + " to queue: " + ORDER_SUBMITTED_QUEUE);
             } catch (Exception mqEx) {
-                // If MQ fails, mark order as FAILED
                 savedOrder.setStatus(OrderStatus.FAILED);
+                savedOrder.setCmsStatus("FAILED");
+                savedOrder.setWmsStatus("FAILED");
+                savedOrder.setRosStatus("FAILED");
                 orderRepository.save(savedOrder);
                 return new OrderResponse(savedOrder.getId(),
                         "Order saved but failed to publish to queue. Order marked as FAILED.",
@@ -64,60 +73,85 @@ public class OrderProcessingService {
         }
     }
 
-    // This listener handles the CMS confirmation step.
+
+    public List<OrderDto> getOrdersForUser(String userId) {
+        List<Order> orders = orderRepository.findByUserId(userId);
+
+        // Map the list of Order entities to a list of OrderDto objects for safe exposure.
+        return orders.stream()
+                .map(OrderDto::new) // Uses the constructor created in OrderDto
+                .collect(Collectors.toList());
+    }
+
+
+    private void checkAndCompleteSaga(Order order) {
+        if ("CONFIRMED".equals(order.getCmsStatus()) &&
+                "CONFIRMED".equals(order.getWmsStatus()) &&
+                "CONFIRMED".equals(order.getRosStatus())) {
+
+            order.setStatus(OrderStatus.COMPLETED);
+            orderRepository.save(order);
+            System.out.println("Saga for order ID " + order.getId() + " is COMPLETE.");
+        }
+    }
+
+
     @RabbitListener(queues = "cms-confirmation")
     public void handleCmsConfirmation(Long orderId) {
         System.out.println("Received CMS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
-            order.setStatus(OrderStatus.CMS_CONFIRMED);
+            order.setCmsStatus("CONFIRMED");
             orderRepository.save(order);
+            checkAndCompleteSaga(order);
         } else {
             System.err.println("Order ID " + orderId + " not found for CMS confirmation. Initiating compensation.");
-            // Send a compensation request
             rabbitTemplate.convertAndSend(COMPENSATING_QUEUE, orderId);
         }
     }
 
-    // WMS confirmation listener
+
     @RabbitListener(queues = "wms-confirmation")
     public void handleWmsConfirmation(Long orderId) {
         System.out.println("Received WMS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
-            order.setStatus(OrderStatus.WMS_CONFIRMED);
+            order.setWmsStatus("CONFIRMED");
             orderRepository.save(order);
+            checkAndCompleteSaga(order);
         } else {
             System.err.println("Order ID " + orderId + " not found for WMS confirmation. Initiating compensation.");
-            // Send a compensation request
             rabbitTemplate.convertAndSend(COMPENSATING_QUEUE, orderId);
         }
     }
 
-    // ROS confirmation listener and final state change
+
     @RabbitListener(queues = "ros-confirmation")
     public void handleRosConfirmation(Long orderId) {
         System.out.println("Received ROS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
-            order.setStatus(OrderStatus.ROUTE_OPTIMIZED);
+            order.setRosStatus("CONFIRMED");
             orderRepository.save(order);
+            checkAndCompleteSaga(order);
         } else {
             System.err.println("Order ID " + orderId + " not found for ROS confirmation. Initiating compensation.");
-            // Send a compensation request
             rabbitTemplate.convertAndSend(COMPENSATING_QUEUE, orderId);
         }
     }
 
-    // New listener for handling compensating transactions (rollbacks)
+
     @RabbitListener(queues = "compensating-transactions")
     public void handleCompensation(Long orderId) {
         System.out.println("Received compensation request for order ID: " + orderId);
         orderRepository.findById(orderId).ifPresent(order -> {
             order.setStatus(OrderStatus.FAILED);
+            order.setCmsStatus("FAILED");
+            order.setWmsStatus("FAILED");
+            order.setRosStatus("FAILED");
             orderRepository.save(order);
             System.out.println("Order ID " + orderId + " status updated to FAILED. All previous actions should be rolled back.");
         });

@@ -11,11 +11,21 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // --- NEW FIELD ---
+    // This column will store the identifier of the user who created the order.
+    // Assuming the user ID is a String (e.g., from a JWT sub claim or a username).
+    @Column(nullable = false) // Making it non-nullable to ensure every order has an owner.
+    private String userId;
+
     private String clientName;
     private String packageDetails;
     private String deliveryAddress;
 
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    private OrderStatus Status;
+
+    private String cmsStatus;
+    private String wmsStatus;
+    private String rosStatus;
 
 }
