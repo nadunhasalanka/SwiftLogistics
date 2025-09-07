@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Package, MapPin, AlertCircle, User } from 'lucide-react';
+import { orderService,type OrderFormData, ApiError } from '../service/orderService';
+import { useNavigate } from 'react-router-dom';
 
 // Note: In a real app, you would have a proper toast notification library configured.
 // This is a placeholder for demonstration.
 const toast = {
-    success: (message) => console.log(`SUCCESS: ${message}`),
-    error: (message) => console.error(`ERROR: ${message}`),
+    success: (message: string) => console.log(`SUCCESS: ${message}`),
+    error: (message: string) => console.error(`ERROR: ${message}`),
 };
-
-// This interface now perfectly matches your backend DTO
-interface OrderFormData {
-    clientName: string;
-    deliveryAddress: string;
-    packageDetails: string;
-}
 
 export function CreateOrderForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const navigate = useNavigate();
 
     const {
         register,
@@ -28,50 +24,26 @@ export function CreateOrderForm() {
 
     const onSubmit = async (data: OrderFormData) => {
         setIsSubmitting(true);
-        const orderPayload = {
-            clientName: data.clientName,
-            deliveryAddress: data.deliveryAddress,
-            packageDetails: data.packageDetails,
-        };
-
-        console.log('Submitting order payload:', orderPayload);
 
         try {
-            const endpoint = 'http://localhost:8080/api/orders';
-
-            // In a real application, the token would be managed via an auth context.
-            // For this example, we retrieve it from localStorage where it's typically stored after login.
-            const token = localStorage.getItem('jwt_token');
-
-            if (!token) {
-                toast.error('Authentication token not found. Please log in.');
-                setIsSubmitting(false);
-                return; // Stop the submission
-            }
-
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(orderPayload)
-            });
-
-            if (!response.ok) {
-                // Try to parse error from backend, otherwise use a generic message
-                const errorData = await response.json().catch(() => ({ message: `Request failed with status: ${response.status}` }));
-                throw new Error(errorData.message || 'Failed to create order');
-            }
-
+            console.log('Submitting order payload:', data);
+            
+            const response = await orderService.createOrder(data);
+            
             toast.success('Order created successfully!');
+            console.log('Order response:', response);
             reset();
-            // In a real app with routing, you might navigate to a different page
-            // e.g., navigate('/orders');
+
+            navigate('/orders');
+            
         } catch (error) {
-            console.error('API Error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-            toast.error(errorMessage);
+            console.error('Order creation failed:', error);
+            
+            if (error instanceof ApiError) {
+                toast.error(error.message);
+            } else {
+                toast.error('An unexpected error occurred while creating the order.');
+            }
         } finally {
             setIsSubmitting(false);
         }
