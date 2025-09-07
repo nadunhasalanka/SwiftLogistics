@@ -33,3 +33,5 @@ Thumbs.db
 temp/
 tmp/
 MA-Assignment-4-2025.pdf
+.env
+.vscode

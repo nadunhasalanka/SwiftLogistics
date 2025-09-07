@@ -1,22 +1,18 @@
 export interface Order {
-  id: string;
-  trackingNumber: string;
-  customerName: string;
-  customerEmail: string;
-  pickupAddress: string;
+  id: number;
+  clientName: string;
+  packageDetails: string;
   deliveryAddress: string;
-  packageDescription: string;
-  serviceType: "economy" | "standard" | "express";
-  priorityLevel: "low" | "medium" | "high" | "urgent";
   status:
-    | "pending"
-    | "confirmed"
-    | "picked_up"
-    | "in_transit"
-    | "delivered"
-    | "cancelled";
-  createdAt: string;
-  updatedAt: string;
+    | "SUBMITTED"
+    | "COMPLETED"
+    | "FAILED";
+  cmsStatus?: string;
+  wmsStatus?: string;
+  rosStatus?: string;
+  userId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface OrderFormData {

@@ -20,7 +20,7 @@ public class RabbitMQConfig {
     // Exchange name
     public static final String EXCHANGE_MIDDLEWARE = "middleware.exchange";
 
-    // Routing keys
+    // // Routing keys
     public static final String ROUTING_KEY_CMS = "cms.routing.key";
     public static final String ROUTING_KEY_WMS = "wms.routing.key";
     public static final String ROUTING_KEY_ROS = "ros.routing.key";
