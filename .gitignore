@@ -1,3 +1,35 @@
 .idea
 docker-compose.yml
 */.env
+
+# RabbitMQ Server
+rabbitmq_server-*/
+rabbitmq_server-3.13.6/
+rabbitmq.zip
+
+# Log files
+*.log
+logs/
+
+# Build artifacts
+target/
+build/
+node_modules/
+dist/
+
+# IDE files
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database files
+*.db
+*.sqlite
+
+# Temporary files
+temp/
+tmp/
+MA-Assignment-4-2025.pdf
