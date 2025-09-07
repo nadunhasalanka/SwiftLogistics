@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Service
 public class OrderProcessingService {
 
-    private static final String ORDER_SUBMITTED_QUEUE = "order-submitted";
+    private static final String ORDER_SUBMITTED_QUEUE = "middleware.exchange";
     private static final String COMPENSATING_QUEUE = "compensating-transactions";
 
     @Autowired
@@ -96,7 +96,7 @@ public class OrderProcessingService {
     }
 
 
-    @RabbitListener(queues = "cms-confirmation")
+    @RabbitListener(queues = "cms.queue")
     public void handleCmsConfirmation(Long orderId) {
         System.out.println("Received CMS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
@@ -112,7 +112,7 @@ public class OrderProcessingService {
     }
 
 
-    @RabbitListener(queues = "wms-confirmation")
+    @RabbitListener(queues = "wms.queue")
     public void handleWmsConfirmation(Long orderId) {
         System.out.println("Received WMS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
@@ -128,7 +128,7 @@ public class OrderProcessingService {
     }
 
 
-    @RabbitListener(queues = "ros-confirmation")
+    @RabbitListener(queues = "ros.queue")
     public void handleRosConfirmation(Long orderId) {
         System.out.println("Received ROS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);

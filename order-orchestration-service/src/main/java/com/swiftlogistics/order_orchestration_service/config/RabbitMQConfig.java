@@ -9,24 +9,32 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+    // Queue names
+    public static final String QUEUE_CMS_CONFIRMATION = "cms.queue";
+    public static final String QUEUE_WMS_CONFIRMATION = "wms.queue";
+    public static final String QUEUE_ROS_CONFIRMATION = "ros.queue";
+
+    // Exchange name
+    public static final String ORDER_SUBMITTED = "middleware.exchange";
+
     @Bean
     public Queue orderSubmittedQueue() {
-        return new Queue("order-submitted", true);
+        return new Queue(ORDER_SUBMITTED, true);
     }
 
     @Bean
     public Queue cmsConfirmationQueue() {
-        return new Queue("cms-confirmation", true);
+        return new Queue(QUEUE_CMS_CONFIRMATION, true);
     }
 
     @Bean
     public Queue wmsConfirmationQueue() {
-        return new Queue("wms-confirmation", true);
+        return new Queue(QUEUE_WMS_CONFIRMATION, true);
     }
 
     @Bean
     public Queue rosConfirmationQueue() {
-        return new Queue("ros-confirmation", true);
+        return new Queue(QUEUE_ROS_CONFIRMATION, true);
     }
 
     @Bean
