@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres-auth-db:
+    image: postgres:15
+    container_name: postgres-auth-db
+    restart: always
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: swiftlogistics_users
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    networks:
+      - swiftlogistics-net
+
+  postgres-db:
+    image: postgres:15
+    container_name: postgres-orders-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: order_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-orders-data:/var/lib/postgresql/data
+    networks:
+      - swiftlogistics-net
+
+  rabbitmq-broker:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq-broker
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - swiftlogistics-net
+
+volumes:
+  postgres_auth_data:
+  postgres-orders-data:
+
+networks:
+  swiftlogistics-net:
+    driver: bridge
