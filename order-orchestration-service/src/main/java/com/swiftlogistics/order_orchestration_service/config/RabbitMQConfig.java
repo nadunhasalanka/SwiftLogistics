@@ -1,5 +1,6 @@
 package com.swiftlogistics.order_orchestration_service.config;
 
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
@@ -9,17 +10,22 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    // Queue names
-    public static final String QUEUE_CMS_CONFIRMATION = "cms.queue";
-    public static final String QUEUE_WMS_CONFIRMATION = "wms.queue";
-    public static final String QUEUE_ROS_CONFIRMATION = "ros.queue";
+    // Exchange name for sending orders
+    public static final String EXCHANGE_MIDDLEWARE = "middleware.exchange";
 
-    // Exchange name
-    public static final String ORDER_SUBMITTED = "middleware.exchange";
+    // Routing keys for sending orders
+    public static final String ROUTING_KEY_CMS = "cms.routing.key";
+    public static final String ROUTING_KEY_WMS = "wms.routing.key";
+    public static final String ROUTING_KEY_ROS = "ros.routing.key";
+
+    // Queue names for receiving confirmations
+    public static final String QUEUE_CMS_CONFIRMATION = "cms-confirmation";
+    public static final String QUEUE_WMS_CONFIRMATION = "wms-confirmation";
+    public static final String QUEUE_ROS_CONFIRMATION = "ros-confirmation";
 
     @Bean
-    public Queue orderSubmittedQueue() {
-        return new Queue(ORDER_SUBMITTED, true);
+    public DirectExchange middlewareExchange() {
+        return new DirectExchange(EXCHANGE_MIDDLEWARE);
     }
 
     @Bean
@@ -38,12 +44,12 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public MessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter();
+    public Queue compensatingTransactionsQueue() {
+        return new Queue("compensating-transactions", true);
     }
 
     @Bean
-    public Queue compensatingTransactionsQueue() {
-        return new Queue("compensating-transactions", true);
+    public MessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
     }
 }
