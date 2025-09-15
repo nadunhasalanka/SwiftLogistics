@@ -44,3 +44,32 @@ export async function login({ email, password }: { email: string; password: stri
   storeUserInLocalStorage(user);
   return user;
 }
+
+export function getCurrentUser() {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      return JSON.parse(userStr);
+    }
+  } catch (error) {
+    console.error('Error parsing user from localStorage:', error);
+  }
+  return null;
+}
+
+// Helper to get current user's token
+export function getCurrentUserToken() {
+  const user = getCurrentUser();
+  return user?.token || null;
+}
+
+// Helper to check if user is logged in
+export function isUserLoggedIn() {
+  const user = getCurrentUser();
+  return !!(user && user.token && user.name && user.id);
+}
+
+// Helper to clear localStorage
+export function logout() {
+  localStorage.removeItem('user');
+}
