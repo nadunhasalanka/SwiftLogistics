@@ -4,7 +4,8 @@ from typing import List
 import uuid
 from datetime import datetime, timezone, timedelta
 import logging
-import asyncio  # Added for async compatibility
+import asyncio
+import uvicorn
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -17,11 +18,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Define data models
+# Corrected Order data model to match the Java Order object
 class Order(BaseModel):
-    orderId: str
-    address: str
+    id: int
+    userId: str
+    clientName: str
+    packageDetails: str
+    deliveryAddress: str
+    status: str
+    cmsStatus: str
+    wmsStatus: str
+    rosStatus: str
 
+# Define other data models
 class OptimizationRequest(BaseModel):
     vehicle_id: str
     orders: List[Order]
@@ -39,10 +48,10 @@ class OptimizationResponse(BaseModel):
     total_estimated_duration: str
     total_distance: str
 
-# Simulate some processing delay like a real ROS would have
+# Simulate some processing delay
 async def simulate_optimization_processing():
     """Simulate the time it takes to optimize routes"""
-    await asyncio.sleep(1.5)  # 1.5 second delay
+    await asyncio.sleep(1.5)
     logger.info("Route optimization processing completed")
 
 @app.get("/")
@@ -56,64 +65,28 @@ async def health_check():
 @app.post("/ros/delivery-points")
 async def add_delivery_points(order: Order):
     """
-    Endpoint for adding individual delivery points
+    Endpoint for adding individual delivery points with a simulated delay.
     """
-    logger.info(f"Added delivery point for order: {order.orderId}")
-    logger.info(f"Address: {order.address}")
-    
+    logger.info(f"Received order ID: {order.id}")
+    logger.info("Simulating 3rd party integration delay...")
+    # Simulate a 2-second integration delay for a complex system
+    await asyncio.sleep(4)
+    logger.info("3rd party integration complete.")
+    logger.info(f"Client: {order.clientName}")
+    logger.info(f"Delivery Address: {order.deliveryAddress}")
+
     return {
         "message": "Delivery point added successfully",
-        "orderId": order.orderId,
+        "orderId": order.id,
         "status": "added"
     }
-
-@app.post("/ros/routes/optimize")
-async def optimize_routes(request: OptimizationRequest):
-    """
-    Main endpoint that simulates route optimization
-    """
-    logger.info(f"Received optimization request for vehicle: {request.vehicle_id}")
-    logger.info(f"Number of orders: {len(request.orders)}")
-    
-    # Simulate processing time (like a real optimization algorithm)
-    await simulate_optimization_processing()
-    
-    # Generate unique route ID
-    route_id = f"route-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8]}"
-    
-    # Create hard-coded optimized route
-    optimized_sequence = []
-    for i, order in enumerate(request.orders):
-        # Calculate fake arrival time (30 minutes per stop)
-        eta = datetime.now(timezone.utc) + timedelta(minutes=30 * (i + 1))
-        
-        optimized_sequence.append(OptimizedStop(
-            stop_number=i + 1,
-            order_id=order.orderId,
-            address=order.address,
-            estimated_arrival=eta.isoformat()
-        ))
-    
-    # Build response
-    response = OptimizationResponse(
-        optimized_route_id=route_id,
-        vehicle_id=request.vehicle_id,
-        optimized_sequence=optimized_sequence,
-        total_estimated_duration=f"{len(request.orders) * 30} minutes",
-        total_distance=f"{len(request.orders) * 12.5:.1f} km"
-    )
-    
-    logger.info(f"Generated optimized route: {route_id}")
-    return response
 
 @app.get("/ros/routes/{route_id}")
 async def get_route_status(route_id: str):
     """
     Get status of a specific route
     """
-    # Simulate a small delay for database lookup
     await asyncio.sleep(0.2)
-    
     return {
         "route_id": route_id,
         "status": "completed",
@@ -122,5 +95,4 @@ async def get_route_status(route_id: str):
     }
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
