@@ -3,6 +3,7 @@ package com.swiftlogistics.logistics_middleware.adapter.cms;
 import com.swiftlogistics.logistics_middleware.model.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import jakarta.xml.bind.JAXBContext;
@@ -16,13 +17,14 @@ import java.net.URL;
 public class CmsAdapter {
     private static final Logger log = LoggerFactory.getLogger(CmsAdapter.class);
 
-    private static final String CMS_ENDPOINT = "http://mock-cms-host.com:8080/api/orders"; // change to actual CMS endpoint
+    private static final String CMS_ENDPOINT = "http://mock-cms-host.com:8080/api/orders"; // replace with actual CMS endpoint
 
     /**
-     * Convert Order object into XML and send it to external CMS
+     * Listen to RabbitMQ queue and send Order to CMS as XML
      */
-    public void sendOrderToCms(Order order) {
-        log.info("CMS Adapter preparing to send order to CMS: {}", order);
+    @RabbitListener(queues = "middleware_queue") // same queue as RosAdapter, or create a separate one
+    public void receiveOrderFromQueue(Order order) {
+        log.info("CMS Adapter received a new order from RabbitMQ: {}", order);
 
         try {
             // Convert Order object to XML
