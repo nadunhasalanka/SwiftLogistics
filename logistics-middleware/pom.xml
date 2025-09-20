@@ -133,7 +133,12 @@
 			<artifactId>camel-kafka</artifactId>
 			<version>${camel.version}</version>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
 	<build>
 		<plugins>
