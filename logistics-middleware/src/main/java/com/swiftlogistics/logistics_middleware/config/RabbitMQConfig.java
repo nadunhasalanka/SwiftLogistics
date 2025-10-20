@@ -7,29 +7,25 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
-
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 
 @Configuration
 public class RabbitMQConfig {
 
-    // Queue names
     public static final String QUEUE_CMS = "cms.queue";
     public static final String QUEUE_WMS = "wms.queue";
     public static final String QUEUE_ROS = "ros.queue";
 
-    // Exchange name
     public static final String EXCHANGE_MIDDLEWARE = "middleware.exchange";
 
-    // // Routing keys
     public static final String ROUTING_KEY_CMS = "cms.routing.key";
     public static final String ROUTING_KEY_WMS = "wms.routing.key";
     public static final String ROUTING_KEY_ROS = "ros.routing.key";
 
-    @Bean
-    public Queue middlewareQueue() {
-        return new Queue("middleware_queue", true); // durable = true
-    }
-
+    public static final String QUEUE_CMS_CONFIRMATION = "cms-confirmation";
+    public static final String QUEUE_WMS_CONFIRMATION = "wms-confirmation";
+    public static final String QUEUE_ROS_CONFIRMATION = "ros-confirmation";
 
     @Bean
     public Queue cmsQueue(){
@@ -47,17 +43,25 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue cmsConfirmationQueue(){
+        return new Queue(QUEUE_CMS_CONFIRMATION, true);
+    }
+
+    @Bean
+    public Queue wmsConfirmationQueue(){
+        return new Queue(QUEUE_WMS_CONFIRMATION, true);
+    }
+
+    @Bean
+    public Queue rosConfirmationQueue(){
+        return new Queue(QUEUE_ROS_CONFIRMATION, true);
+    }
+
+    @Bean
     public DirectExchange exchange() {
         return new DirectExchange(EXCHANGE_MIDDLEWARE);
     }
 
-    @Bean
-    public Binding middlewareBinding(Queue middlewareQueue, DirectExchange exchange) {
-        return BindingBuilder.bind(middlewareQueue).to(exchange).with("middleware.routing.key");
-    }
-
-
-    // Bind the queues to the exchange with specific routing keys
     @Bean
     public Binding cmsBinding(Queue cmsQueue, DirectExchange exchange) {
         return BindingBuilder.bind(cmsQueue).to(exchange).with(ROUTING_KEY_CMS);
@@ -78,4 +82,8 @@ public class RabbitMQConfig {
         return new RestTemplate();
     }
 
+    @Bean
+    public MessageConverter messageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
 }

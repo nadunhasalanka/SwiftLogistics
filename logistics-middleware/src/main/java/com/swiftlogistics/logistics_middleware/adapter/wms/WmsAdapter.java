@@ -1,40 +1,44 @@
 package com.swiftlogistics.logistics_middleware.adapter.wms;
 
+import com.swiftlogistics.logistics_middleware.config.RabbitMQConfig;
 import com.swiftlogistics.logistics_middleware.model.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.io.OutputStream;
-import java.net.Socket;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 public class WmsAdapter {
     private static final Logger log = LoggerFactory.getLogger(WmsAdapter.class);
 
-    private static final String WMS_HOST = "mock-wms-host.com";
-    private static final int WMS_PORT = 1234;
+    private static final String WMS_ENDPOINT = "http://mock-wms-host.com:9090/packages/{package_id}/receive";
 
-    //Listens for messages on the middleware_queue and process the order
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = "middleware_queue")
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_WMS)
     public void receiveOrderFromQueue(Order order){
         log.info("WMS Adapter received a new order from RabbitMQ: {}", order);
 
-        String wmsMessage = String.format("ORDER|%s|%s", order.getId(), order.getClientName());
+        try {
+            String url = WMS_ENDPOINT.replace("{package_id}", order.getId().toString());
+            log.info("Attempting to send order to WMS at: {}", url);
 
-        try (Socket socket = new Socket(WMS_HOST, WMS_PORT);
-            OutputStream out = socket.getOutputStream()){
+            String response = restTemplate.postForObject(url, null, String.class);
 
-            log.info("Attempting to connect to WMS at {}:{}", WMS_HOST, WMS_PORT);
+            log.info("WMS mock response: {}", response);
 
-            out.write(wmsMessage.getBytes());
-            out.flush();
-        }catch (Exception e){
+            rabbitTemplate.convertAndSend(RabbitMQConfig.QUEUE_WMS_CONFIRMATION, order.getId());
+            log.info("Sent confirmation for order ID {} to wms-confirmation queue.", order.getId());
+
+        } catch (Exception e) {
             log.error("Failed to connect or send message to WMS, ERROR: {}", e.getMessage());
-
         }
-
     }
 }

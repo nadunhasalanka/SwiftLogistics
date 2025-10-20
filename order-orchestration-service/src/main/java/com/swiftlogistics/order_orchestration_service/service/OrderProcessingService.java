@@ -1,5 +1,6 @@
 package com.swiftlogistics.order_orchestration_service.service;
 
+import com.swiftlogistics.order_orchestration_service.config.RabbitMQConfig;
 import com.swiftlogistics.order_orchestration_service.dto.OrderDto;
 import com.swiftlogistics.order_orchestration_service.dto.OrderRequest;
 import com.swiftlogistics.order_orchestration_service.dto.OrderResponse;
@@ -19,7 +20,6 @@ import java.util.stream.Collectors;
 @Service
 public class OrderProcessingService {
 
-    private static final String ORDER_SUBMITTED_QUEUE = "middleware.exchange";
     private static final String COMPENSATING_QUEUE = "compensating-transactions";
 
     @Autowired
@@ -28,7 +28,7 @@ public class OrderProcessingService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    public OrderResponse placeOrder(OrderRequest orderRequest,String userId) {
+    public OrderResponse placeOrder(OrderRequest orderRequest, String userId) {
         try {
             Order order = new Order();
             order.setUserId(userId);
@@ -43,8 +43,11 @@ public class OrderProcessingService {
             Order savedOrder = orderRepository.save(order);
 
             try {
-                rabbitTemplate.convertAndSend(ORDER_SUBMITTED_QUEUE, savedOrder);
-                System.out.println("Published order with ID " + savedOrder.getId() + " to queue: " + ORDER_SUBMITTED_QUEUE);
+                // Correctly publish the order to the exchange with specific routing keys
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MIDDLEWARE, RabbitMQConfig.ROUTING_KEY_CMS, savedOrder);
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MIDDLEWARE, RabbitMQConfig.ROUTING_KEY_WMS, savedOrder);
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MIDDLEWARE, RabbitMQConfig.ROUTING_KEY_ROS, savedOrder);
+                System.out.println("Published order with ID " + savedOrder.getId() + " to middleware exchange for all three systems.");
             } catch (Exception mqEx) {
                 savedOrder.setStatus(OrderStatus.FAILED);
                 savedOrder.setCmsStatus("FAILED");
@@ -73,16 +76,12 @@ public class OrderProcessingService {
         }
     }
 
-
     public List<OrderDto> getOrdersForUser(String userId) {
         List<Order> orders = orderRepository.findByUserId(userId);
-
-        // Map the list of Order entities to a list of OrderDto objects for safe exposure.
         return orders.stream()
-                .map(OrderDto::new) // Uses the constructor created in OrderDto
+                .map(OrderDto::new)
                 .collect(Collectors.toList());
     }
-
 
     private void checkAndCompleteSaga(Order order) {
         if ("CONFIRMED".equals(order.getCmsStatus()) &&
@@ -95,8 +94,8 @@ public class OrderProcessingService {
         }
     }
 
-
-    @RabbitListener(queues = "cms.queue")
+    // These listeners are now correctly bound to the queues that the adapters publish to.
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_CMS_CONFIRMATION)
     public void handleCmsConfirmation(Long orderId) {
         System.out.println("Received CMS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
@@ -111,24 +110,41 @@ public class OrderProcessingService {
         }
     }
 
-
-    @RabbitListener(queues = "wms.queue")
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_WMS_CONFIRMATION)
     public void handleWmsConfirmation(Long orderId) {
         System.out.println("Received WMS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
+
+        // HANDLING RACE CONDITION
+        int maxRetries = 5;
+        int currentRetry = 0;
+        long retryDelayMillis = 100; // 100 milliseconds
+
+        while (orderOptional.isEmpty() && currentRetry < maxRetries) {
+            System.out.println("Order ID " + orderId + " not found. Retrying in " + retryDelayMillis + "ms... (Attempt " + (currentRetry + 1) + ")");
+            try {
+                Thread.sleep(retryDelayMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Retry thread interrupted.");
+                break;
+            }
+            orderOptional = orderRepository.findById(orderId);
+            currentRetry++;
+        }
+
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
             order.setWmsStatus("CONFIRMED");
             orderRepository.save(order);
             checkAndCompleteSaga(order);
         } else {
-            System.err.println("Order ID " + orderId + " not found for WMS confirmation. Initiating compensation.");
+            System.err.println("Order ID " + orderId + " not found after " + maxRetries + " retries. Initiating compensation.");
             rabbitTemplate.convertAndSend(COMPENSATING_QUEUE, orderId);
         }
     }
 
-
-    @RabbitListener(queues = "ros.queue")
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_ROS_CONFIRMATION)
     public void handleRosConfirmation(Long orderId) {
         System.out.println("Received ROS confirmation for order ID: " + orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
@@ -143,8 +159,7 @@ public class OrderProcessingService {
         }
     }
 
-
-    @RabbitListener(queues = "compensating-transactions")
+    @RabbitListener(queues = COMPENSATING_QUEUE)
     public void handleCompensation(Long orderId) {
         System.out.println("Received compensation request for order ID: " + orderId);
         orderRepository.findById(orderId).ifPresent(order -> {

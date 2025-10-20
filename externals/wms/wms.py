@@ -1,53 +1,28 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+import logging
+import uvicorn
 import asyncio
-import socket
 
-app = FastAPI(title="WMS REST Adapter")
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# WMS connection details (example values)
-WMS_HOST = "127.0.0.1"
-WMS_PORT = 9090
-
-async def send_wms_message(message: str) -> str:
-    """Send a message to WMS over TCP/IP and get the response."""
-    try:
-        reader, writer = await asyncio.open_connection(WMS_HOST, WMS_PORT)
-
-        # Send message
-        writer.write(message.encode("utf-8") + b"\n")
-        await writer.drain()
-
-        # Receive response
-        data = await reader.read(4096)
-        response = data.decode("utf-8").strip()
-
-        writer.close()
-        await writer.wait_closed()
-
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"WMS communication failed: {e}")
-
-
-@app.get("/packages/{package_id}")
-async def get_package_status(package_id: str):
-    """Check the status of a package in WMS."""
-    message = f"GET_STATUS {package_id}"
-    response = await send_wms_message(message)
-    return {"package_id": package_id, "status": response}
-
-
-@app.post("/packages/{package_id}/load")
-async def load_package(package_id: str, vehicle_id: str):
-    """Mark a package as loaded onto a vehicle in WMS."""
-    message = f"LOAD {package_id} VEHICLE {vehicle_id}"
-    response = await send_wms_message(message)
-    return {"package_id": package_id, "vehicle_id": vehicle_id, "result": response}
-
+# Create the FastAPI app
+app = FastAPI(
+    title="WMS Mock Service",
+    description="Mock Warehouse Management System for SwiftLogistics",
+    version="1.0.0"
+)
 
 @app.post("/packages/{package_id}/receive")
-async def receive_package(package_id: str, client_id: str):
-    """Mark a package as received from a client in WMS."""
-    message = f"RECEIVE {package_id} CLIENT {client_id}"
-    response = await send_wms_message(message)
-    return {"package_id": package_id, "client_id": client_id, "result": response}
+async def receive_package(package_id: str):
+    """Marks a package as received from a client in WMS with a simulated delay."""
+    logger.info(f"WMS received a request to receive package with ID: {package_id}")
+    # Simulate a 1-second legacy system processing delay
+    logger.info("Simulating legacy system delay...")
+    await asyncio.sleep(7)
+    logger.info("Legacy system processing complete.")
+    return {"package_id": package_id, "result": "received"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=9090)
