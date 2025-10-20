@@ -1,6 +1,7 @@
 import { Package, Plus, BarChart3, User, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { NotificationPanel } from './NotificationPanel';
 
 export function Navigation() {
   const location = useLocation();
@@ -49,6 +50,7 @@ export function Navigation() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <NotificationPanel />
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <User className="h-4 w-4" />
               <span>{user ? user.name : 'Guest'}</span>
